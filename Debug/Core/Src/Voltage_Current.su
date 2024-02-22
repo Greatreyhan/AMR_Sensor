@@ -1,2 +1,0 @@
-../Core/Src/Voltage_Current.c:14:6:VoltCurrent_Init	16	static
-../Core/Src/Voltage_Current.c:19:6:VoltCurrent_Callback	32	static
