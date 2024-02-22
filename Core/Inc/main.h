@@ -59,6 +59,22 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define DHT22_Pin GPIO_PIN_0
 #define DHT22_GPIO_Port GPIOA
+#define LCD_RST_Pin GPIO_PIN_15
+#define LCD_RST_GPIO_Port GPIOA
+#define MUL_SCK_Pin GPIO_PIN_3
+#define MUL_SCK_GPIO_Port GPIOB
+#define MUL_Latch_Pin GPIO_PIN_4
+#define MUL_Latch_GPIO_Port GPIOB
+#define MUL_MOSI_Pin GPIO_PIN_5
+#define MUL_MOSI_GPIO_Port GPIOB
+#define LCD_CS_Pin GPIO_PIN_6
+#define LCD_CS_GPIO_Port GPIOB
+#define LCD_RS_Pin GPIO_PIN_7
+#define LCD_RS_GPIO_Port GPIOB
+#define LCD_WR_Pin GPIO_PIN_8
+#define LCD_WR_GPIO_Port GPIOB
+#define LCD_RD_Pin GPIO_PIN_9
+#define LCD_RD_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 

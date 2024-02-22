@@ -21,13 +21,16 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "BNO08X.h"
-#include "DHT22.h"
-#include "Voltage_Current.h"
-#include "HX711.h"
-#include <stdint.h>
-#include <string.h>
-#include <stdio.h>
+#include 	"BNO08X.h"
+#include 	"DHT22.h"
+#include 	"Voltage_Current.h"
+#include 	"HX711.h"
+#include 	<stdint.h>
+#include 	<string.h>
+#include 	<stdio.h>
+#include	"fonts.h"
+#include 	"tft.h"
+#include	"functions.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -49,19 +52,38 @@
 ADC_HandleTypeDef hadc1;
 DMA_HandleTypeDef hdma_adc1;
 
+TIM_HandleTypeDef htim1;
+
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 UART_HandleTypeDef huart6;
+DMA_HandleTypeDef hdma_usart1_rx;
 DMA_HandleTypeDef hdma_usart2_rx;
 
 /* USER CODE BEGIN PV */
+// ID LCD
+uint16_t ID = 37697;
+
+// Buffer UART
 char Buffer[50];
+uint8_t RX_Data[100];
+
+// Channel Loadcell
 float chA= 0;
 float chB = 0;
+
+// Typedef BNO08x
 BNO08X_Typedef BNO08x_Data;
+
+// Typedef DHT22
 DHT_Typedef DHT22_Data;
+
+// Typedef Voltage
 Voltage_Current_Typedef val;
+
+// Typedef Loadcell
 hx711_t scale;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -72,6 +94,7 @@ static void MX_USART2_UART_Init(void);
 static void MX_USART6_UART_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_USART1_UART_Init(void);
+static void MX_TIM1_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -79,14 +102,16 @@ static void MX_USART1_UART_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-void HAL_UART_RxHalfCpltCallback(UART_HandleTypeDef *huart)
-{
-	HAL_GPIO_TogglePin (GPIOC, GPIO_PIN_13);  // toggle PA0
-}
-
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-	BNO08X_GetData(&BNO08x_Data);
+	if (huart == &huart1) {
+		// Callback for BNO08X
+	    BNO08X_GetData(&BNO08x_Data);
+	} else if (huart == &huart6) {
+	    // Callback for ESP01
+	    HAL_UART_Transmit(&huart6, RX_Data, sizeof(RX_Data), 100);
+	    HAL_UART_Receive_DMA(&huart1, RX_Data, sizeof(RX_Data));
+	}
 }
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
@@ -130,22 +155,47 @@ int main(void)
   MX_USART6_UART_Init();
   MX_ADC1_Init();
   MX_USART1_UART_Init();
+  MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
+
+  ////////////////////////////////////// SENSOR INITIALIZATION ////////////////////////////////////
+  // BNO08X initialization
   BNO08X_Init(&huart2);
+  // DHT22 Initialization
   DHT_Start();
+  // Volt & Current Initialization
   VoltCurrent_Init(&hadc1);
+  // LCD Initialization
+  HAL_TIM_Base_Start(&htim1);
+  readID();
+  tft_init(ID);
+  fillScreen(BLACK);
+  // ESP01 Initialization
+  HAL_UART_Transmit(&huart6, (uint8_t *)"Start Connecting \n", 15, 100);
+  char IPAddress[] = "192.168.43.38";
+  HAL_UART_Transmit(&huart1, (uint8_t*)IPAddress, sizeof(IPAddress)-1, 100);
+  HAL_UART_Receive_DMA(&huart1, RX_Data, sizeof(RX_Data));
+
+  // Reading Data in DHT22 Sensor
   DHT_GetData(&DHT22_Data);
+
+  // Reading Data in Loadcell Sensor
   hx711_calibration(&scale,GPIOB, GPIO_PIN_0, GPIOB, GPIO_PIN_1);
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  chA = hx711_measure_channel(scale, CHANNEL_A);
-	  chB = hx711_measure_channel(scale, CHANNEL_B);
-	  snprintf(Buffer, sizeof(Buffer), "Channel A : %f | Channel B : %f \n", chA, chB);
-	  HAL_UART_Transmit(&huart6,(uint8_t*)Buffer, strlen(Buffer), 100);
+
+	  // Write Data in LCD
+	  printnewtstr(100, RED, &mono9x7, 1, "ONDE FUCKING MANDE");
+
+//	  chA = hx711_measure_channel(scale, CHANNEL_A);
+//	  chB = hx711_measure_channel(scale, CHANNEL_B);
+//	  snprintf(Buffer, sizeof(Buffer), "Channel A : %f | Channel B : %f \n", chA, chB);
+//	  HAL_UART_Transmit(&huart6,(uint8_t*)Buffer, strlen(Buffer), 100);
 //	 DHT_GetData(&DHT22_Data);
 //	 snprintf(Buffer, sizeof(Buffer), "T: %f | H: %f \n", DHT22_Data.Temperature, DHT22_Data.Humidity);
 //	 HAL_UART_Transmit(&huart6,(uint8_t*)Buffer, strlen(Buffer), 100);
@@ -265,6 +315,52 @@ static void MX_ADC1_Init(void)
 }
 
 /**
+  * @brief TIM1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM1_Init(void)
+{
+
+  /* USER CODE BEGIN TIM1_Init 0 */
+
+  /* USER CODE END TIM1_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM1_Init 1 */
+
+  /* USER CODE END TIM1_Init 1 */
+  htim1.Instance = TIM1;
+  htim1.Init.Prescaler = 100-1;
+  htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim1.Init.Period = 0xffff-1;
+  htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim1.Init.RepetitionCounter = 0;
+  htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim1, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM1_Init 2 */
+
+  /* USER CODE END TIM1_Init 2 */
+
+}
+
+/**
   * @brief USART1 Initialization Function
   * @param None
   * @retval None
@@ -380,6 +476,9 @@ static void MX_DMA_Init(void)
   /* DMA2_Stream0_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA2_Stream0_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA2_Stream0_IRQn);
+  /* DMA2_Stream2_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Stream2_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Stream2_IRQn);
 
 }
 
@@ -397,12 +496,42 @@ static void MX_GPIO_Init(void)
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOB_CLK_ENABLE();
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(LCD_RST_GPIO_Port, LCD_RST_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOB, MUL_SCK_Pin|MUL_Latch_Pin|MUL_MOSI_Pin|LCD_CS_Pin
+                          |LCD_RS_Pin|LCD_WR_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : DHT22_Pin */
   GPIO_InitStruct.Pin = DHT22_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(DHT22_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : LCD_RST_Pin */
+  GPIO_InitStruct.Pin = LCD_RST_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(LCD_RST_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : MUL_SCK_Pin MUL_Latch_Pin MUL_MOSI_Pin LCD_CS_Pin
+                           LCD_RS_Pin LCD_WR_Pin */
+  GPIO_InitStruct.Pin = MUL_SCK_Pin|MUL_Latch_Pin|MUL_MOSI_Pin|LCD_CS_Pin
+                          |LCD_RS_Pin|LCD_WR_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : LCD_RD_Pin */
+  GPIO_InitStruct.Pin = LCD_RD_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(LCD_RD_GPIO_Port, &GPIO_InitStruct);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
