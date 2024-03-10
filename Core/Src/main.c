@@ -25,17 +25,27 @@
 #include 	"DHT22.h"
 #include 	"Voltage_Current.h"
 #include 	"HX711.h"
+#include	"ESP01.h"
 #include 	<stdint.h>
 #include 	<string.h>
 #include 	<stdio.h>
+
+#include "communication_full.h"
 #include	"fonts.h"
 #include 	"tft.h"
 #include	"functions.h"
+#include	"communication_stm32.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-
+//#define		USE_BNO08X
+//#define		USE_DHT22
+//#define		USE_VOLT_CURRENT
+//#define		USE_LOADCELL
+//#define		USE_LCD
+//#define		USE_COM_CONTROL
+//#define		USE_ESP01
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -59,6 +69,7 @@ UART_HandleTypeDef huart2;
 UART_HandleTypeDef huart6;
 DMA_HandleTypeDef hdma_usart1_rx;
 DMA_HandleTypeDef hdma_usart2_rx;
+DMA_HandleTypeDef hdma_usart6_rx;
 
 /* USER CODE BEGIN PV */
 // ID LCD
@@ -66,7 +77,8 @@ uint16_t ID = 37697;
 
 // Buffer UART
 char Buffer[50];
-uint8_t RX_Data[100];
+char BufferLast[50];
+//uint8_t RX_Data[100];
 
 // Channel Loadcell
 float chA= 0;
@@ -83,6 +95,12 @@ Voltage_Current_Typedef val;
 
 // Typedef Loadcell
 hx711_t scale;
+
+// Typedef Communication STM32Control
+feedback_t feeding;
+
+// Typedef ESP01
+ESP01RX_Typedef ESP01RX;
 
 /* USER CODE END PV */
 
@@ -104,21 +122,39 @@ static void MX_TIM1_Init(void);
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-	if (huart == &huart1) {
-		// Callback for BNO08X
+	if (huart == &huart2) {
+
+		// Callback for BNO08X Data
+		#ifdef USE_BNO08X
 	    BNO08X_GetData(&BNO08x_Data);
-	} else if (huart == &huart6) {
-	    // Callback for ESP01
-	    HAL_UART_Transmit(&huart6, RX_Data, sizeof(RX_Data), 100);
-	    HAL_UART_Receive_DMA(&huart1, RX_Data, sizeof(RX_Data));
+    	#endif
+
+	} else if (huart == &huart1) {
+
+	    // Callback for ESP01 Output
+		#ifdef USE_ESP01
+		ESP01_Callback(&ESP01RX);
+		#endif
+
+	} else if(huart == &huart6){
+
+		// Callback Receive data from STM32 Control
+		#ifdef USE_COM_CONTROL
+		rx_feedback(&feeding);
+		#endif
 	}
 }
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 {
+	#ifdef USE_VOLT_CURRENT
+	printnewtstr(10, BLACK, &mono9x7, 1, (uint8_t *)BufferLast);
 	snprintf(Buffer, sizeof(Buffer), "Voltage: %f | Current: %f \n", val.voltage, val.current);
-	HAL_UART_Transmit(&huart6,(uint8_t*)Buffer, strlen(Buffer), 100);
+	snprintf(BufferLast, sizeof(BufferLast), "Voltage: %f | Current: %f \n", val.voltage, val.current);
+	printnewtstr(10, WHITE, &mono9x7, 1, (uint8_t *)Buffer);
+//	HAL_UART_Transmit(&huart6,(uint8_t*)Buffer, strlen(Buffer), 100);
 	VoltCurrent_Callback(&val);
+	#endif
 }
 /* USER CODE END 0 */
 
@@ -159,28 +195,43 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   ////////////////////////////////////// SENSOR INITIALIZATION ////////////////////////////////////
+
   // BNO08X initialization
+  #ifdef USE_BNO08X
   BNO08X_Init(&huart2);
+  #endif
+
   // DHT22 Initialization
+  #ifdef USE_DHT22
   DHT_Start();
+  #endif
+
   // Volt & Current Initialization
+  #ifdef USE_VOLT_CURRENT
   VoltCurrent_Init(&hadc1);
+  #endif
+
   // LCD Initialization
+  #ifdef USE_LCD
   HAL_TIM_Base_Start(&htim1);
   readID();
   tft_init(ID);
+  HAL_Delay(1000);
   fillScreen(BLACK);
+  setRotation(135);
+//  fillScreen(BLACK);
+  #endif
+
   // ESP01 Initialization
-  HAL_UART_Transmit(&huart6, (uint8_t *)"Start Connecting \n", 15, 100);
-  char IPAddress[] = "192.168.43.38";
-  HAL_UART_Transmit(&huart1, (uint8_t*)IPAddress, sizeof(IPAddress)-1, 100);
-  HAL_UART_Receive_DMA(&huart1, RX_Data, sizeof(RX_Data));
+  #ifdef USE_ESP01
+  ESPO1_Init(&huart1, "192.168.43.38");
+  #endif
 
   // Reading Data in DHT22 Sensor
-  DHT_GetData(&DHT22_Data);
+  // DHT_GetData(&DHT22_Data);
 
   // Reading Data in Loadcell Sensor
-  hx711_calibration(&scale,GPIOB, GPIO_PIN_0, GPIOB, GPIO_PIN_1);
+  // hx711_calibration(&scale,GPIOB, GPIO_PIN_0, GPIOB, GPIO_PIN_1);
 
   /* USER CODE END 2 */
 
@@ -190,7 +241,6 @@ int main(void)
   {
 
 	  // Write Data in LCD
-	  printnewtstr(100, RED, &mono9x7, 1, "ONDE FUCKING MANDE");
 
 //	  chA = hx711_measure_channel(scale, CHANNEL_A);
 //	  chB = hx711_measure_channel(scale, CHANNEL_B);
@@ -476,6 +526,9 @@ static void MX_DMA_Init(void)
   /* DMA2_Stream0_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA2_Stream0_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA2_Stream0_IRQn);
+  /* DMA2_Stream1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Stream1_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Stream1_IRQn);
   /* DMA2_Stream2_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA2_Stream2_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA2_Stream2_IRQn);
@@ -494,16 +547,28 @@ static void MX_GPIO_Init(void)
 /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(LCD_RST_GPIO_Port, LCD_RST_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(LED_BUILTIN_GPIO_Port, LED_BUILTIN_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, MUL_SCK_Pin|MUL_Latch_Pin|MUL_MOSI_Pin|LCD_CS_Pin
-                          |LCD_RS_Pin|LCD_WR_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, LED_BLUE_Pin|LED_GREEN_Pin|LED_RED_Pin|MUL_SCK_Pin
+                          |MUL_Latch_Pin|MUL_MOSI_Pin|LCD_CS_Pin|LCD_RS_Pin
+                          |LCD_WR_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(LCD_RST_GPIO_Port, LCD_RST_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : LED_BUILTIN_Pin */
+  GPIO_InitStruct.Pin = LED_BUILTIN_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(LED_BUILTIN_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : DHT22_Pin */
   GPIO_InitStruct.Pin = DHT22_Pin;
@@ -511,21 +576,23 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(DHT22_GPIO_Port, &GPIO_InitStruct);
 
+  /*Configure GPIO pins : LED_BLUE_Pin LED_GREEN_Pin LED_RED_Pin MUL_SCK_Pin
+                           MUL_Latch_Pin MUL_MOSI_Pin LCD_CS_Pin LCD_RS_Pin
+                           LCD_WR_Pin */
+  GPIO_InitStruct.Pin = LED_BLUE_Pin|LED_GREEN_Pin|LED_RED_Pin|MUL_SCK_Pin
+                          |MUL_Latch_Pin|MUL_MOSI_Pin|LCD_CS_Pin|LCD_RS_Pin
+                          |LCD_WR_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
   /*Configure GPIO pin : LCD_RST_Pin */
   GPIO_InitStruct.Pin = LCD_RST_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(LCD_RST_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : MUL_SCK_Pin MUL_Latch_Pin MUL_MOSI_Pin LCD_CS_Pin
-                           LCD_RS_Pin LCD_WR_Pin */
-  GPIO_InitStruct.Pin = MUL_SCK_Pin|MUL_Latch_Pin|MUL_MOSI_Pin|LCD_CS_Pin
-                          |LCD_RS_Pin|LCD_WR_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pin : LCD_RD_Pin */
   GPIO_InitStruct.Pin = LCD_RD_Pin;

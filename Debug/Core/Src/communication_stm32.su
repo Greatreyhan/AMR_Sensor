@@ -1,0 +1,8 @@
+../Core/Src/communication_stm32.c:15:6:komunikasi_init	16	static
+../Core/Src/communication_stm32.c:19:9:checksum_generator	24	static
+../Core/Src/communication_stm32.c:25:6:tx_ping	32	static
+../Core/Src/communication_stm32.c:34:6:tx_send_postion	24	static
+../Core/Src/communication_stm32.c:42:6:rx_start	8	static
+../Core/Src/communication_stm32.c:46:6:rx_start_get	8	static
+../Core/Src/communication_stm32.c:50:6:rx_feedback	16	static
+../Core/Src/communication_stm32.c:62:6:rx_get	32	static

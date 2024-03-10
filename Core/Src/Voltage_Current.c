@@ -5,6 +5,7 @@
  *      Author: greatreyhan
  */
 #include "Voltage_Current.h"
+#include <math.h>
 static uint32_t value[2];
 static float sensitivity = 0.1;
 static float const_voltage = 1.488;

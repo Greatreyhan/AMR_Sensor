@@ -131,8 +131,8 @@ void write_8(uint8_t d) {
 
 
 /************************** For 100 MHZ ****************************/
-//#define WRITE_DELAY { WR_ACTIVE2; }
-//#define READ_DELAY  { RD_ACTIVE4; }
+#define WRITE_DELAY { WR_ACTIVE2; }
+#define READ_DELAY  { RD_ACTIVE4; }
 
 
 /************************** For 216 MHZ ****************************/
@@ -142,8 +142,8 @@ void write_8(uint8_t d) {
 
 
 /************************** For 48 MHZ ****************************/
-#define WRITE_DELAY { }
-#define READ_DELAY  { }
+//#define WRITE_DELAY { }
+//#define READ_DELAY  { }
 
 
 /*****************************  DEFINES FOR DIFFERENT TFTs   ****************************************************/
