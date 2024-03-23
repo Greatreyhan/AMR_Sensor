@@ -34,34 +34,34 @@ $(wildcard ../makefile.init) \
 $(wildcard ../makefile.targets) \
 
 
-BUILD_ARTIFACT_NAME := AMR_Sensor
+BUILD_ARTIFACT_NAME := Sensor
 BUILD_ARTIFACT_EXTENSION := elf
 BUILD_ARTIFACT_PREFIX :=
 BUILD_ARTIFACT := $(BUILD_ARTIFACT_PREFIX)$(BUILD_ARTIFACT_NAME)$(if $(BUILD_ARTIFACT_EXTENSION),.$(BUILD_ARTIFACT_EXTENSION),)
 
 # Add inputs and outputs from these tool invocations to the build variables 
 EXECUTABLES += \
-AMR_Sensor.elf \
+Sensor.elf \
 
 MAP_FILES += \
-AMR_Sensor.map \
+Sensor.map \
 
 SIZE_OUTPUT += \
 default.size.stdout \
 
 OBJDUMP_LIST += \
-AMR_Sensor.list \
+Sensor.list \
 
 
 # All Target
 all: main-build
 
 # Main-build Target
-main-build: AMR_Sensor.elf secondary-outputs
+main-build: Sensor.elf secondary-outputs
 
 # Tool invocations
-AMR_Sensor.elf AMR_Sensor.map: $(OBJS) $(USER_OBJS) /home/greatreyhan/Documents/Tugas\ Akhir/AMR_Sensor/STM32F411CCUX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "AMR_Sensor.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"/home/greatreyhan/Documents/Tugas Akhir/AMR_Sensor/STM32F411CCUX_FLASH.ld" --specs=nosys.specs -Wl,-Map="AMR_Sensor.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -u _printf_float -u _scanf_float -Wl,--start-group -lc -lm -Wl,--end-group
+Sensor.elf Sensor.map: $(OBJS) $(USER_OBJS) D:\Tugas_Akhir\Sensor\STM32F411CCUX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "Sensor.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"D:\Tugas_Akhir\Sensor\STM32F411CCUX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Sensor.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -u _printf_float -u _scanf_float -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -70,14 +70,14 @@ default.size.stdout: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
 	@echo 'Finished building: $@'
 	@echo ' '
 
-AMR_Sensor.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "AMR_Sensor.list"
+Sensor.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "Sensor.list"
 	@echo 'Finished building: $@'
 	@echo ' '
 
 # Other Targets
 clean:
-	-$(RM) AMR_Sensor.elf AMR_Sensor.list AMR_Sensor.map default.size.stdout
+	-$(RM) Sensor.elf Sensor.list Sensor.map default.size.stdout
 	-@echo ' '
 
 secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST)

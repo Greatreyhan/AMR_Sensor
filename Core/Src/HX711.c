@@ -203,7 +203,7 @@ float hx711_measure_channel(hx711_t hx711, uint8_t channel){
 	return weight;
 }
 
-float hx711_weight(hx711_t hx711, hx711_t hx711b){
+float hx711_measure_weight(hx711_t hx711){
 	long weightA = 0;
 	long weightB = 0;
 

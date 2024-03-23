@@ -50,6 +50,6 @@ double get_value(hx711_t *hx711, int8_t times, uint8_t channel);
 void hx711_start(hx711_t *hx711, GPIO_TypeDef *clk_gpio, uint16_t clk_pin, GPIO_TypeDef *dat_gpio, uint16_t dat_pin);
 void hx711_calibration(hx711_t *hx711, GPIO_TypeDef *clk_gpio, uint16_t clk_pin, GPIO_TypeDef *dat_gpio, uint16_t dat_pin);
 float hx711_measure_channel(hx711_t hx711, uint8_t channel);
-float hx711_measure_weight(hx711_t hx711, hx711_t hx711b);
+float hx711_measure_weight(hx711_t hx711);
 
 #endif /* SRC_HX711_H_ */

@@ -34,18 +34,18 @@
 #include	"fonts.h"
 #include 	"tft.h"
 #include	"functions.h"
-#include	"communication_stm32.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-//#define		USE_BNO08X
-//#define		USE_DHT22
-//#define		USE_VOLT_CURRENT
-//#define		USE_LOADCELL
+#define		USE_BNO08X
+#define		USE_DHT22
+#define		USE_VOLT_CURRENT
+#define		USE_LOADCELL
+#define		USE_COM_CONTROL
+#define		USE_COM_PC
 //#define		USE_LCD
-//#define		USE_COM_CONTROL
-//#define		USE_ESP01
+
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -91,16 +91,19 @@ BNO08X_Typedef BNO08x_Data;
 DHT_Typedef DHT22_Data;
 
 // Typedef Voltage
-Voltage_Current_Typedef val;
+Voltage_Current_Typedef Volt_Current_Data;
 
 // Typedef Loadcell
-hx711_t scale;
+hx711_t Loadcell_Data;
+
+// Typedef All Sensor Data
+sensor_package_t Sensor_Data;
 
 // Typedef Communication STM32Control
-feedback_t feeding;
+feedback_ctrl_t feedback_control;
 
-// Typedef ESP01
-ESP01RX_Typedef ESP01RX;
+// Typedef Communication PC
+com_pc_get_t message_from_pc;
 
 /* USER CODE END PV */
 
@@ -120,6 +123,8 @@ static void MX_TIM1_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+////////////////////////////////////// COMMUNICATION CALLBACK ////////////////////////////////////
+
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 	if (huart == &huart2) {
@@ -131,31 +136,20 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 
 	} else if (huart == &huart1) {
 
-	    // Callback for ESP01 Output
-		#ifdef USE_ESP01
-		ESP01_Callback(&ESP01RX);
+	    // Callback for Communicate to PC
+		#ifdef USE_COM_PC
+		rx_pc_get(&message_from_pc);
 		#endif
 
 	} else if(huart == &huart6){
 
 		// Callback Receive data from STM32 Control
 		#ifdef USE_COM_CONTROL
-		rx_feedback(&feeding);
+		rx_ctrl_feedback(&feedback_control);
 		#endif
 	}
 }
 
-void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
-{
-	#ifdef USE_VOLT_CURRENT
-	printnewtstr(10, BLACK, &mono9x7, 1, (uint8_t *)BufferLast);
-	snprintf(Buffer, sizeof(Buffer), "Voltage: %f | Current: %f \n", val.voltage, val.current);
-	snprintf(BufferLast, sizeof(BufferLast), "Voltage: %f | Current: %f \n", val.voltage, val.current);
-	printnewtstr(10, WHITE, &mono9x7, 1, (uint8_t *)Buffer);
-//	HAL_UART_Transmit(&huart6,(uint8_t*)Buffer, strlen(Buffer), 100);
-	VoltCurrent_Callback(&val);
-	#endif
-}
 /* USER CODE END 0 */
 
 /**
@@ -211,6 +205,23 @@ int main(void)
   VoltCurrent_Init(&hadc1);
   #endif
 
+  // Load cell Initialization
+  #ifdef USE_LOADCELL
+  hx711_start(&Loadcell_Data, GPIOB, GPIO_PIN_0, GPIOB, GPIO_PIN_1);
+  #endif
+
+  // Initialize Communication to Control
+  #ifdef USE_COM_CONTROL
+  komunikasi_ctrl_init(&huart6);
+  rx_ctrl_start();
+  #endif
+
+  // Initialize Communication to PC
+  #ifdef USE_COM_PC
+  komunikasi_pc_init(&huart1);
+  rx_pc_start_get();
+  #endif
+
   // LCD Initialization
   #ifdef USE_LCD
   HAL_TIM_Base_Start(&htim1);
@@ -219,19 +230,7 @@ int main(void)
   HAL_Delay(1000);
   fillScreen(BLACK);
   setRotation(135);
-//  fillScreen(BLACK);
   #endif
-
-  // ESP01 Initialization
-  #ifdef USE_ESP01
-  ESPO1_Init(&huart1, "192.168.43.38");
-  #endif
-
-  // Reading Data in DHT22 Sensor
-  // DHT_GetData(&DHT22_Data);
-
-  // Reading Data in Loadcell Sensor
-  // hx711_calibration(&scale,GPIOB, GPIO_PIN_0, GPIOB, GPIO_PIN_1);
 
   /* USER CODE END 2 */
 
@@ -240,16 +239,37 @@ int main(void)
   while (1)
   {
 
-	  // Write Data in LCD
+	  ////////////////////////////////////// SENSOR READING ////////////////////////////////////
 
-//	  chA = hx711_measure_channel(scale, CHANNEL_A);
-//	  chB = hx711_measure_channel(scale, CHANNEL_B);
-//	  snprintf(Buffer, sizeof(Buffer), "Channel A : %f | Channel B : %f \n", chA, chB);
-//	  HAL_UART_Transmit(&huart6,(uint8_t*)Buffer, strlen(Buffer), 100);
-//	 DHT_GetData(&DHT22_Data);
-//	 snprintf(Buffer, sizeof(Buffer), "T: %f | H: %f \n", DHT22_Data.Temperature, DHT22_Data.Humidity);
-//	 HAL_UART_Transmit(&huart6,(uint8_t*)Buffer, strlen(Buffer), 100);
-//	 HAL_Delay(3000);
+	  // Reading Data in DHT22 Sensor
+	  DHT_GetData(&DHT22_Data);
+	  Sensor_Data.temperature = DHT22_Data.Temperature;
+	  Sensor_Data.humidity = DHT22_Data.Humidity;
+
+	  // Reading Data in Voltage Sensor
+	  Get_Voltage_Measurement(&Volt_Current_Data);
+	  Sensor_Data.voltage = Volt_Current_Data.voltage;
+
+	  // Reading Data in Current Sensor
+	  Get_Current_Measurement(&Volt_Current_Data);
+	  Sensor_Data.current = Volt_Current_Data.current;
+
+	  // Reading Data in Load cell Sensor
+	  Sensor_Data.loadcell = hx711_measure_weight(Loadcell_Data);
+
+	  ////////////////////////////////////// SENDING DATA TO PC ////////////////////////////////
+
+	  // Sending BNO08X Data
+	  tx_pc_send_BNO08X(BNO08x_Data);
+
+	  // Sending Sensor Data
+	  tx_pc_send_Sensor(Sensor_Data);
+
+	  ////////////////////////////////////// SENDING DATA TO CONTROL ///////////////////////////
+
+	  // Sending BNO08X Data
+	  tx_ctrl_send_BNO08X(BNO08x_Data);
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -315,7 +335,7 @@ static void MX_ADC1_Init(void)
 
   /* USER CODE END ADC1_Init 0 */
 
-  ADC_ChannelConfTypeDef sConfig = {0};
+//  ADC_ChannelConfTypeDef sConfig = {0};
 
   /* USER CODE BEGIN ADC1_Init 1 */
 
@@ -332,32 +352,32 @@ static void MX_ADC1_Init(void)
   hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
   hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
   hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-  hadc1.Init.NbrOfConversion = 2;
+  hadc1.Init.NbrOfConversion = 1;
   hadc1.Init.DMAContinuousRequests = DISABLE;
   hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
   if (HAL_ADC_Init(&hadc1) != HAL_OK)
   {
     Error_Handler();
   }
-
-  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
-  */
-  sConfig.Channel = ADC_CHANNEL_1;
-  sConfig.Rank = 1;
-  sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
-  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
-  */
-  sConfig.Channel = ADC_CHANNEL_4;
-  sConfig.Rank = 2;
-  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
+//
+//  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+//  */
+//  sConfig.Channel = ADC_CHANNEL_1;
+//  sConfig.Rank = 1;
+//  sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+//  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+//  {
+//    Error_Handler();
+//  }
+//
+//  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+//  */
+//  sConfig.Channel = ADC_CHANNEL_4;
+//  sConfig.Rank = 2;
+//  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+//  {
+//    Error_Handler();
+//  }
   /* USER CODE BEGIN ADC1_Init 2 */
 
   /* USER CODE END ADC1_Init 2 */

@@ -7,6 +7,8 @@
 
 #include	"communication_full.h"
 #define		USE_FEEDBACK
+#define		USE_FORWARDING
+#define		TIMEOUT_SEND	100
 
 //-------------------- CONFIG FOR PC COMMUNICATION --------------------------------------//
 static UART_HandleTypeDef* huart_pc;
@@ -34,15 +36,15 @@ bool tx_ctrl_ping(void){
 	uint8_t ping[] = {0xA5, 0x5A, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 	ping[15] = checksum_ctrl_generator(ping, 16);
 
-	if(HAL_UART_Transmit_IT(huart_ctrl, ping, 16) == HAL_OK) return true;
+	if(HAL_UART_Transmit(huart_ctrl, ping, 16, TIMEOUT_SEND) == HAL_OK) return true;
 	else return false;
 }
 
-bool tx_ctrl_send_postion(BNO08X_Typedef BNO08x){
+bool tx_ctrl_send_BNO08X(BNO08X_Typedef BNO08x){
 	uint8_t steady[] = {0xA5, 0x5A, 0x02, ((BNO08x.yaw >> 8) & 0XFF), ((BNO08x.yaw) & 0XFF), ((BNO08x.pitch >> 8) & 0XFF), ((BNO08x.pitch) & 0XFF), ((BNO08x.roll >> 8) & 0XFF), ((BNO08x.roll) & 0XFF), ((BNO08x.x_acceleration >> 8) & 0XFF), ((BNO08x.x_acceleration) & 0XFF), ((BNO08x.y_acceleration >> 8) & 0XFF), ((BNO08x.y_acceleration) & 0XFF), ((BNO08x.z_acceleration >> 8) & 0XFF), ((BNO08x.z_acceleration) & 0XFF), 0x00};
 	steady[15] = checksum_ctrl_generator(steady, 16);
 
-	if(HAL_UART_Transmit_IT(huart_ctrl, steady, 16) == HAL_OK) return true;
+	if(HAL_UART_Transmit(huart_ctrl, steady, 16, TIMEOUT_SEND) == HAL_OK) return true;
 	else return false;
 }
 
@@ -110,7 +112,7 @@ bool tx_pc_ping(void){
 	uint8_t ping[] = {0xA5, 0x5A, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 	ping[15] = checksum_pc_generator(ping, 16);
 
-	if(HAL_UART_Transmit_IT(huart_pc, ping, 16) == HAL_OK) return true;
+	if(HAL_UART_Transmit(huart_pc, ping, 16, TIMEOUT_SEND) == HAL_OK) return true;
 	else return false;
 }
 
@@ -119,7 +121,7 @@ bool tx_pc_send_BNO08X(BNO08X_Typedef BNO08x){
 	uint8_t steady[] = {0xA5, 0x5A, 0x02, ((BNO08x.yaw >> 8) & 0XFF), ((BNO08x.yaw) & 0XFF), ((BNO08x.pitch >> 8) & 0XFF), ((BNO08x.pitch) & 0XFF), ((BNO08x.roll >> 8) & 0XFF), ((BNO08x.roll) & 0XFF), ((BNO08x.x_acceleration >> 8) & 0XFF), ((BNO08x.x_acceleration) & 0XFF), ((BNO08x.y_acceleration >> 8) & 0XFF), ((BNO08x.y_acceleration) & 0XFF), ((BNO08x.z_acceleration >> 8) & 0XFF), ((BNO08x.z_acceleration) & 0XFF), 0x00};
 	steady[15] = checksum_pc_generator(steady, 16);
 
-	if(HAL_UART_Transmit_IT(huart_pc, steady, 16) == HAL_OK) return true;
+	if(HAL_UART_Transmit(huart_pc, steady, 16, TIMEOUT_SEND) == HAL_OK) return true;
 	else return false;
 }
 
@@ -128,7 +130,7 @@ bool tx_pc_send_Encoder(encoder_package_t Encoder_Package){
 	uint8_t steady[] = {0xA5, 0x5A, 0x03, ((Encoder_Package.vertical_distance >> 8) & 0XFF), ((Encoder_Package.vertical_distance) & 0XFF), ((Encoder_Package.horizontal_distance >> 8) & 0XFF), ((Encoder_Package.horizontal_distance) & 0XFF), ((Encoder_Package.vertical_speed >> 8) & 0XFF), ((Encoder_Package.vertical_speed) & 0XFF), ((Encoder_Package.horizontal_speed >> 8) & 0XFF), ((Encoder_Package.horizontal_speed) & 0XFF), 0x00, 0x00, 0x00, 0x00};
 	steady[15] = checksum_pc_generator(steady, 16);
 
-	if(HAL_UART_Transmit_IT(huart_pc, steady, 16) == HAL_OK) return true;
+	if(HAL_UART_Transmit(huart_pc, steady, 16, TIMEOUT_SEND) == HAL_OK) return true;
 	else return false;
 }
 
@@ -137,7 +139,7 @@ bool tx_pc_send_Sensor(sensor_package_t Sensor){
 	uint8_t steady[] = {0xA5, 0x5A, 0x04, ((Sensor.temperature >> 8) & 0XFF), ((Sensor.temperature) & 0XFF), ((Sensor.humidity >> 8) & 0XFF), ((Sensor.humidity) & 0XFF), ((Sensor.current >> 8) & 0XFF), ((Sensor.current) & 0XFF), ((Sensor.voltage >> 8) & 0XFF), ((Sensor.voltage) & 0XFF), ((Sensor.loadcell >> 8) & 0XFF), ((Sensor.loadcell) & 0XFF), 0x00, 0x00, 0x00};
 	steady[15] = checksum_pc_generator(steady, 16);
 
-	if(HAL_UART_Transmit_IT(huart_pc, steady, 16) == HAL_OK) return true;
+	if(HAL_UART_Transmit(huart_pc, steady, 16, TIMEOUT_SEND) == HAL_OK) return true;
 	else return false;
 }
 
@@ -168,9 +170,8 @@ void rx_pc_get(com_pc_get_t* get){
 			if(rxbuf_get_pc[i+2] == 0x10){
 				get->cmd = PING;
 
-				#ifdef	USE_FEEDBACK
-				uint8_t txbuf[3] = {0xA5, 0x5A, 0x10};
-				HAL_UART_Transmit(huart_pc, txbuf, 3, 1);
+				#ifdef	USE_FORWARDING
+				HAL_UART_Transmit(huart_ctrl, rxbuf_get_pc, 16, TIMEOUT_SEND);
 				#endif
 
 			}
@@ -181,9 +182,8 @@ void rx_pc_get(com_pc_get_t* get){
 				get->distance = (rxbuf_get_pc[i+5] << 8) | rxbuf_get_pc[i+6];
 				get->cmd = ROTATION;
 
-				#ifdef	USE_FEEDBACK
-				uint8_t txbuf[3] = {0xA5, 0x5A, 0x11};
-				HAL_UART_Transmit(huart_pc, txbuf, 3, 1);
+				#ifdef	USE_FORWARDING
+				HAL_UART_Transmit(huart_ctrl, rxbuf_get_pc, 16, TIMEOUT_SEND);
 				#endif
 			}
 
@@ -194,9 +194,8 @@ void rx_pc_get(com_pc_get_t* get){
 				get->distance = (rxbuf_get_pc[i+5] << 8) | rxbuf_get_pc[i+6];
 				get->cmd = MOVE;
 
-				#ifdef	USE_FEEDBACK
-				uint8_t txbuf[3] = {0xA5, 0x5A, 0x12};
-				HAL_UART_Transmit(huart_pc, txbuf, 3, 1);
+				#ifdef	USE_FORWARDING
+				HAL_UART_Transmit(huart_ctrl, rxbuf_get_pc, 16, TIMEOUT_SEND);
 				#endif
 			}
 
@@ -207,9 +206,8 @@ void rx_pc_get(com_pc_get_t* get){
 				get->distance = (rxbuf_get_pc[i+5] << 8) | rxbuf_get_pc[i+6];
 				get->cmd = STANDBY;
 
-				#ifdef	USE_FEEDBACK
-				uint8_t txbuf[3] = {0xA5, 0x5A, 0x13};
-				HAL_UART_Transmit(huart_pc, txbuf, 3, 1);
+				#ifdef	USE_FORWARDING
+				HAL_UART_Transmit(huart_ctrl, rxbuf_get_pc, 16, TIMEOUT_SEND);
 				#endif
 			}
 

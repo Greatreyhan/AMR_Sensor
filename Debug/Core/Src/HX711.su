@@ -14,4 +14,4 @@
 ../Core/Src/HX711.c:154:6:hx711_start	32	static
 ../Core/Src/HX711.c:174:6:hx711_calibration	32	static
 ../Core/Src/HX711.c:193:7:hx711_measure_channel	16	static
-../Core/Src/HX711.c:206:7:hx711_weight	16	static
+../Core/Src/HX711.c:206:7:hx711_measure_weight	16	static

@@ -88,7 +88,7 @@ typedef struct{
 void komunikasi_ctrl_init(UART_HandleTypeDef* uart_handler);
 uint8_t checksum_ctrl_generator(uint8_t* arr, uint8_t size);
 bool tx_ctrl_ping(void);
-bool tx_ctrl_send_postion(BNO08X_Typedef BNO08x);
+bool tx_ctrl_send_BNO08X(BNO08X_Typedef BNO08x);
 void rx_ctrl_start(void);
 void rx_ctrl_start_get(void);
 void rx_ctrl_feedback(feedback_ctrl_t* fed);
