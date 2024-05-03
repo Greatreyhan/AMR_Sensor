@@ -143,6 +143,24 @@ bool tx_pc_send_Sensor(sensor_package_t Sensor){
 	else return false;
 }
 
+//---------------------------------------------------- Send Kinematic Data -----------------------------------------------------------------------------------------//
+bool tx_pc_send_Kinematic(uint16_t Sx, uint16_t Sy, uint16_t St, uint16_t T){
+	uint8_t steady[] = {0xA5, 0x5A, 0x05, ((Sx >> 8) & 0XFF), ((Sx) & 0XFF), ((Sy >> 8) & 0XFF), ((Sy) & 0XFF), ((St >> 8) & 0XFF), ((St) & 0XFF), ((T >> 8) & 0XFF), ((T) & 0XFF), 0x00, 0x00, 0x00, 0x00, 0x00};
+	steady[15] = checksum_pc_generator(steady, 16);
+
+	if(HAL_UART_Transmit(huart_pc, steady, 16, TIMEOUT_SEND) == HAL_OK) return true;
+	else return false;
+}
+
+//---------------------------------------------------- Send DWM1000 Data -----------------------------------------------------------------------------------------//
+bool tx_pc_send_DWM(uint16_t Xpos, uint16_t YPos){
+	uint8_t steady[] = {0xA5, 0x5A, 0x06, ((Xpos >> 8) & 0XFF), ((Xpos) & 0XFF), ((YPos >> 8) & 0XFF), ((YPos) & 0XFF), 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+	steady[15] = checksum_pc_generator(steady, 16);
+
+	if(HAL_UART_Transmit(huart_pc, steady, 16, TIMEOUT_SEND) == HAL_OK) return true;
+	else return false;
+}
+
 void rx_pc_start(void){
 	HAL_UART_Receive_DMA(huart_pc,rxbuf_pc, 3);
 }

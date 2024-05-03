@@ -76,7 +76,7 @@ void Set_Pin_Input (GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin)
 	GPIO_InitTypeDef GPIO_InitStruct = {0};
 	GPIO_InitStruct.Pin = GPIO_Pin;
 	GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Pull = GPIO_PULLUP;
 	HAL_GPIO_Init(GPIOx, &GPIO_InitStruct);
 }
 
@@ -145,5 +145,13 @@ void DHT_GetData (DHT_Typedef *DHT_Data)
 			DHT_Data->Temperature = ((Temp_byte1<<8)|Temp_byte2);
 			DHT_Data->Humidity = ((Rh_byte1<<8)|Rh_byte2);
 		#endif
+	}
+}
+
+void DHT_Timer_Test(uint16_t time){
+	HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+	for (int i=0; i<20; i++)
+	{
+		delay(time);
 	}
 }

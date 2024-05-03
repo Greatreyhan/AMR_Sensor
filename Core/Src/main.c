@@ -39,10 +39,10 @@
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
 #define		USE_BNO08X
-#define		USE_DHT22
+//#define		USE_DHT22
 #define		USE_VOLT_CURRENT
-#define		USE_LOADCELL
-#define		USE_COM_CONTROL
+//#define		USE_LOADCELL
+//#define		USE_COM_CONTROL
 #define		USE_COM_PC
 //#define		USE_LCD
 
@@ -240,35 +240,37 @@ int main(void)
   {
 
 	  ////////////////////////////////////// SENSOR READING ////////////////////////////////////
-
+//	  DHT_Timer_Test(50000);
 	  // Reading Data in DHT22 Sensor
-	  DHT_GetData(&DHT22_Data);
-	  Sensor_Data.temperature = DHT22_Data.Temperature;
-	  Sensor_Data.humidity = DHT22_Data.Humidity;
+//	  DHT_GetData(&DHT22_Data);
+//	  Sensor_Data.temperature = DHT22_Data.Temperature;
+//	  Sensor_Data.humidity = DHT22_Data.Humidity;
 
-	  // Reading Data in Voltage Sensor
-	  Get_Voltage_Measurement(&Volt_Current_Data);
-	  Sensor_Data.voltage = Volt_Current_Data.voltage;
-
-	  // Reading Data in Current Sensor
-	  Get_Current_Measurement(&Volt_Current_Data);
-	  Sensor_Data.current = Volt_Current_Data.current;
-
-	  // Reading Data in Load cell Sensor
-	  Sensor_Data.loadcell = hx711_measure_weight(Loadcell_Data);
-
-	  ////////////////////////////////////// SENDING DATA TO PC ////////////////////////////////
-
+//	  // Reading Data in Voltage Sensor
+//	  Get_Voltage_Measurement(&Volt_Current_Data);
+//	  Sensor_Data.voltage = Volt_Current_Data.voltage;
+//
+//	  // Reading Data in Current Sensor
+//	  Get_Current_Measurement(&Volt_Current_Data);
+//	  Sensor_Data.current = Volt_Current_Data.current;
+//
+//	  // Reading Data in Load cell Sensor
+//	  Sensor_Data.loadcell = hx711_measure_weight(Loadcell_Data);
+//
+//	  ////////////////////////////////////// SENDING DATA TO PC ////////////////////////////////
+//
 	  // Sending BNO08X Data
 	  tx_pc_send_BNO08X(BNO08x_Data);
 
 	  // Sending Sensor Data
 	  tx_pc_send_Sensor(Sensor_Data);
+//
+//	  ////////////////////////////////////// SENDING DATA TO CONTROL ///////////////////////////
+//
+//	  // Sending BNO08X Data
+//	  tx_ctrl_send_BNO08X(BNO08x_Data);
 
-	  ////////////////////////////////////// SENDING DATA TO CONTROL ///////////////////////////
-
-	  // Sending BNO08X Data
-	  tx_ctrl_send_BNO08X(BNO08x_Data);
+//	  HAL_Delay(3000);
 
     /* USER CODE END WHILE */
 

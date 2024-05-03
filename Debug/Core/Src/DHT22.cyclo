@@ -6,3 +6,4 @@
 ../Core/Src/DHT22.c:99:9:DHT_Check_Response	4
 ../Core/Src/DHT22.c:114:9:DHT_Read	5
 ../Core/Src/DHT22.c:133:6:DHT_GetData	2
+../Core/Src/DHT22.c:151:6:DHT_Timer_Test	2
