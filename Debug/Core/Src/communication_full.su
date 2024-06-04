@@ -12,7 +12,9 @@
 ../Core/Src/communication_full.c:120:6:tx_pc_send_BNO08X	24	static
 ../Core/Src/communication_full.c:129:6:tx_pc_send_Encoder	32	static
 ../Core/Src/communication_full.c:138:6:tx_pc_send_Sensor	40	static
-../Core/Src/communication_full.c:146:6:rx_pc_start	8	static
-../Core/Src/communication_full.c:150:6:rx_pc_start_get	8	static
-../Core/Src/communication_full.c:154:6:rx_pc_feedback	16	static
-../Core/Src/communication_full.c:165:6:rx_pc_get	24	static
+../Core/Src/communication_full.c:147:6:tx_pc_send_Kinematic	40	static
+../Core/Src/communication_full.c:156:6:tx_pc_send_DWM	32	static
+../Core/Src/communication_full.c:164:6:rx_pc_start	8	static
+../Core/Src/communication_full.c:168:6:rx_pc_start_get	8	static
+../Core/Src/communication_full.c:172:6:rx_pc_feedback	16	static
+../Core/Src/communication_full.c:183:6:rx_pc_get	24	static

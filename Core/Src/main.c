@@ -42,7 +42,7 @@
 //#define		USE_DHT22
 #define		USE_VOLT_CURRENT
 //#define		USE_LOADCELL
-//#define		USE_COM_CONTROL
+#define		USE_COM_CONTROL
 #define		USE_COM_PC
 //#define		USE_LCD
 
@@ -260,14 +260,14 @@ int main(void)
 //	  ////////////////////////////////////// SENDING DATA TO PC ////////////////////////////////
 //
 	  // Sending BNO08X Data
-	  tx_pc_send_BNO08X(BNO08x_Data);
+//	  tx_pc_send_BNO08X(BNO08x_Data);
 
 	  // Sending Sensor Data
-	  tx_pc_send_Sensor(Sensor_Data);
+//	  tx_pc_send_Sensor(Sensor_Data);
 //
 //	  ////////////////////////////////////// SENDING DATA TO CONTROL ///////////////////////////
 //
-//	  // Sending BNO08X Data
+	  // Sending BNO08X Data
 //	  tx_ctrl_send_BNO08X(BNO08x_Data);
 
 //	  HAL_Delay(3000);
